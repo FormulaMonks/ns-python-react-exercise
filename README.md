@@ -92,10 +92,24 @@ With the codebase stabilized, you can now build the new feature. This PR will be
 
 1.  **Create a Branch:** From your `fix/haunted-codebase` branch, create a new branch. We suggest `feature/transaction-tags-grid`.
     *   *Note: Because this is a "stacked" PR, you will see the commits from your `fix/haunted-codebase` branch also included in this pull request. This is expected.*
-2.  **The "Twist":** The new feature requires a database change. The current schema has a one-to-one relationship, but the feature needs a **one-to-many relationship**. Design and execute this migration first.
+
+2.  **The "Twist": Database Schema Evolution**
+    The core of this new feature is to enable a transaction to have **multiple associated tags** (e.g., "work", "travel", "reimbursable") instead of just a single category.
+    *   **Current State:** A `Transaction` currently has a many-to-one relationship with a `Category`.
+    *   **Required Change:** Evolve the schema to allow a **many-to-many relationship** between `Transaction` and `Tag`. Design and implement the necessary database schema changes (e.g., new `Tag` model, an association table) and update the `backend/seed.py` script to populate some sample tags and associations. Since there's no dedicated migration tool, manual schema updates followed by `docker-compose down -v && docker-compose up --build` will be sufficient to apply your changes.
+
 3.  **Build the Feature:**
-    *   **Backend:** Create a new API endpoint that uses a **raw SQL query with a multi-table `JOIN`**.
-    *   **Frontend:** Build a **data grid** with **server-side sorting and pagination**.
+    *   **Backend (Python/FastAPI):**
+        *   Create a **new API endpoint** (e.g., `GET /api/v1/transactions/grid`) specifically designed to serve the advanced needs of the new data grid. This new endpoint should be distinct from existing transaction endpoints to avoid breaking changes and allow for specialized optimization for the grid's requirements (such as multi-table joins and aggregated tag data).
+        *   This endpoint should support **server-side pagination** (e.g., `page`, `size` query parameters) and **server-side sorting** (e.g., `sort_by`, `sort_order` query parameters).
+        *   The endpoint's data fetching logic **must use a raw SQL query with a multi-table `JOIN`** to retrieve transactions along with their associated categories and *all* their new tags.
+        *   The response should be structured to facilitate rendering in a data grid, ideally including the total count of transactions for pagination purposes.
+    *   **Frontend (React/TypeScript):**
+        *   Build a **new React component** (e.g., `TransactionGrid.tsx`) that displays transactions in a **data grid**.
+        *   This grid should display columns for `Date`, `Description`, `Amount`, `Category`, and a new column to show the **associated tags** for each transaction (e.g., as colored pills or badges).
+        *   Implement **server-side sorting**: Clicking on column headers (e.g., `Date`, `Amount`) should trigger an API call to the new backend endpoint with the appropriate `sort_by` and `sort_order` parameters.
+        *   Implement **server-side pagination**: Add controls (e.g., "Previous", "Next" buttons, page numbers) that interact with the new backend endpoint using `page` and `size` parameters.
+        *   You are not required to add new third-party data grid libraries; building it with standard HTML table elements is perfectly acceptable and often preferred to demonstrate core React and UI skills.
 4.  **Open the PR:**
     *   Open a new pull request from `feature/transaction-tags-grid` to your `main` branch.
     *   Use the PR description template for PRs #2 and #3 below. In your description, please explicitly mention that this PR builds on `fix/haunted-codebase` and link to PR #2.
