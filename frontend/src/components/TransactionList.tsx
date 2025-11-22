@@ -17,12 +17,13 @@ const TransactionList: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<string>('all');
 
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:8000/api/v1/transactions/');
+        const response = await fetch('http://localhost:8000/api/v1/transactions/?limit=100');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -46,10 +47,28 @@ const TransactionList: React.FC = () => {
     return <div className="text-red-500">Error: {error}</div>;
   }
 
+  const filteredTransactions = transactions.filter(t => {
+    if (filterType === 'all') return true;
+    return t.type === filterType;
+  });
+
   return (
     <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-8">
-      <div className="px-4 py-5 sm:px-6">
+      <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
         <h3 className="text-lg leading-6 font-medium text-gray-900">Recent Transactions</h3>
+        <div>
+          <label htmlFor="filter" className="text-sm font-medium text-gray-700 mr-2">Filter by type:</label>
+          <select
+            id="filter"
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="p-2 border border-gray-300 rounded-md"
+          >
+            <option value="all">All</option>
+            <option value="credit">Credit</option>
+            <option value="debit">Debit</option>
+          </select>
+        </div>
       </div>
       <div className="border-t border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
@@ -63,7 +82,7 @@ const TransactionList: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {transactions.map((transaction, index) => (
+            {filteredTransactions.map((transaction, index) => (
               <tr key={transaction.id} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
                   {new Date(transaction.date).toLocaleDateString()}
@@ -86,9 +105,9 @@ const TransactionList: React.FC = () => {
                 </td>
               </tr>
             ))}
-            {transactions.length === 0 && (
+            {filteredTransactions.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">No transactions found.</td>
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">No transactions found for this filter.</td>
               </tr>
             )}
           </tbody>
